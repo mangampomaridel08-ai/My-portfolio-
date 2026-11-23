@@ -3,489 +3,402 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AralNa | 500 Knowledge Trials & Learning Game</title>
+    <title>BIASVOTE | Official Global Music Awards & Voting Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { color-scheme: light; }
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f0fdf4;
-            background-image:
-                radial-gradient(ellipse at 12% 8%, rgba(134, 239, 172, 0.38), transparent 34rem),
-                radial-gradient(ellipse at 88% 24%, rgba(74, 222, 128, 0.2), transparent 30rem);
-            background-attachment: fixed;
-        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
         [x-cloak] { display: none !important; }
-        .glow-blue { box-shadow: 0 24px 80px rgba(20, 83, 45, 0.12), 0 0 35px rgba(34, 197, 94, 0.12); }
-        button, input { -webkit-tap-highlight-color: transparent; }
-        button { transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease; }
-        button:hover:not(:disabled) { transform: translateY(-1px); }
-        button:active:not(:disabled) { transform: translateY(0) scale(0.99); }
-        button:focus-visible, input:focus-visible { outline: 2px solid #16a34a; outline-offset: 3px; }
-        input { caret-color: #16a34a; }
-        *, *::before, *::after { animation: none !important; transition: none !important; }
-        button:hover:not(:disabled) { transform: none; }
-        .answer-correct, .answer-wrong { box-shadow: none; }
+        .glow-red { box-shadow: 0 0 25px rgba(225, 29, 72, 0.2); }
+        @keyframes vote-burst {
+            0% { opacity: 0; transform: translateY(10px) scale(0.7); }
+            20% { opacity: 1; transform: translateY(0) scale(1.1); }
+            75% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-38px) scale(1); }
+        }
+        @keyframes vote-card-glow {
+            0%, 100% { box-shadow: 0 0 0 rgba(225, 29, 72, 0); }
+            35% { box-shadow: 0 0 28px rgba(225, 29, 72, 0.45); }
+        }
+        .vote-burst { animation: vote-burst 900ms ease-out forwards; }
+        .vote-card-pulse { animation: vote-card-glow 700ms ease-out; }
+        @media (prefers-reduced-motion: reduce) {
+            .vote-burst, .vote-card-pulse { animation-duration: 1ms; }
+        }
     </style>
 </head>
-<body class="bg-green-50 text-green-950 min-h-screen selection:bg-green-600 selection:text-green-950" x-data="learningGame()">
+<body class="bg-[#080305] text-slate-100 min-h-screen selection:bg-rose-600 selection:text-white" x-data="votingApp()" x-init="initTimer()">
 
-    <!-- HEADER -->
-    <header class="border-b border-green-200 bg-white/90 backdrop-blur-md sticky top-0 z-50">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
-            <div class="flex items-center space-x-3 cursor-pointer" @click="resetGame()">
-                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-green-600 via-green-600 to-lime-500 flex items-center justify-center font-black text-2xl shadow-lg shadow-green-300/50 text-green-950 drop-shadow tracking-tighter" style="font-family: Georgia, 'Times New Roman', serif;">AN</div>
+    <!-- TOP GLOBAL BANNER -->
+    <div class="bg-gradient-to-r from-rose-950 via-red-950 to-rose-950 border-b border-rose-900/40 text-rose-200 text-xs py-2 px-4 text-center font-semibold tracking-wide">
+        🌟 2026 GLOBAL MUSIC AWARDS — OFFICIAL ROUND 1 VOTING IS NOW LIVE WORLDWIDE 🌟
+    </div>
+
+    <!-- HEADER / NAV -->
+    <header class="border-b border-rose-950/60 bg-[#0c0407]/90 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" @click="currentTab = 'vote'">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-rose-700 via-red-600 to-rose-500 flex items-center justify-center font-black text-xl shadow-lg shadow-rose-900/50 text-white tracking-tighter">BV</div>
                 <div>
-                    <span class="text-lg font-black tracking-wider bg-gradient-to-r from-green-800 via-green-600 to-lime-500 bg-clip-text text-transparent block">AralNa</span>
-                    <span class="text-[10px] text-green-800 uppercase tracking-widest font-bold">500 Learning Trials</span>
+                    <span class="text-lg font-black tracking-wider bg-gradient-to-r from-white via-rose-200 to-rose-400 bg-clip-text text-transparent block">BIASVOTE</span>
+                    <span class="text-[10px] text-rose-400 uppercase tracking-widest font-bold">Global Official</span>
                 </div>
             </div>
             
-            <template x-if="gameState === 'playing' || gameState === 'gameover'">
-                <div class="flex items-center gap-3 text-xs font-bold">
-                    <div class="px-3 py-1.5 rounded-xl bg-green-200/50 border border-green-300/60 text-green-800">
-                        XP: <span class="text-green-950 font-black" x-text="xp + ' XP'"></span>
-                    </div>
-                    <div class="px-3 py-1.5 rounded-xl bg-green-200/50 border border-green-300/60 text-green-800">
-                        Rank: <span class="text-green-700 font-black" x-text="playerRank"></span>
+            <div class="flex items-center space-x-4">
+                <!-- User Pass & Hearts Wallet -->
+                <div class="hidden sm:flex items-center gap-3 px-3.5 py-1.5 rounded-2xl bg-[#14060b] border border-rose-900/60 text-xs">
+                    <span class="text-rose-400 font-bold uppercase tracking-wider text-[10px]">VIP Voter Lv.2</span>
+                    <span class="w-px h-3 bg-rose-900/60"></span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-rose-500 text-sm">❤️</span>
+                        <span class="font-black text-white text-sm" x-text="userHearts"></span>
                     </div>
                 </div>
-            </template>
+
+                <button @click="claimDailyHearts()" :disabled="claimedToday" :class="claimedToday ? 'opacity-40 cursor-not-allowed bg-slate-900 border-slate-800' : 'bg-gradient-to-r from-rose-600 to-red-600 hover:opacity-90 shadow-lg shadow-rose-900/40'" class="px-4 py-2 rounded-xl text-white text-xs font-bold transition-all border border-rose-500/30 flex items-center gap-1.5">
+                    <span>🎁</span>
+                    <span x-text="claimedToday ? 'Daily Claimed' : 'Free Hearts'"></span>
+                </button>
+            </div>
         </div>
     </header>
 
+    <!-- NAVIGATION TABS -->
+    <nav class="border-b border-rose-950/40 bg-[#0a0306]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 overflow-x-auto">
+            <button @click="currentTab = 'vote'" :class="currentTab === 'vote' ? 'border-rose-600 text-rose-400 bg-rose-950/20' : 'border-transparent text-slate-400 hover:text-slate-200'" class="py-4 border-b-2 font-bold text-xs uppercase tracking-wider transition-all px-2 whitespace-nowrap flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span> Live Ballots
+            </button>
+            <button @click="currentTab = 'leaderboard'" :class="currentTab === 'leaderboard' ? 'border-rose-600 text-rose-400 bg-rose-950/20' : 'border-transparent text-slate-400 hover:text-slate-200'" class="py-4 border-b-2 font-bold text-xs uppercase tracking-wider transition-all px-2 whitespace-nowrap">
+                🏆 Real-Time Global Rankings
+            </button>
+            <button @click="currentTab = 'missions'" :class="currentTab === 'missions' ? 'border-rose-600 text-rose-400 bg-rose-950/20' : 'border-transparent text-slate-400 hover:text-slate-200'" class="py-4 border-b-2 font-bold text-xs uppercase tracking-wider transition-all px-2 whitespace-nowrap">
+                ⭐ Heart Station & Quests
+            </button>
+        </div>
+    </nav>
+
     <!-- MAIN CONTAINER -->
-    <main class="max-w-3xl mx-auto px-4 py-10">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        <!-- SCREEN 1: LOBBY & SETUP -->
-        <template x-if="gameState === 'lobby'">
-            <div class="bg-white border border-green-200/80 rounded-3xl p-6 sm:p-10 shadow-2xl glow-blue text-center">
-                <span class="px-3.5 py-1 rounded-full bg-green-200/80 border border-green-400/60 text-green-800 text-xs font-bold uppercase tracking-widest inline-block mb-4">
-                    🎓 Gamified Knowledge Hub
-                </span>
-                <h1 class="text-3xl sm:text-4xl font-black text-green-950 mb-3">Embark on 500 Learning Trials</h1>
-                <p class="text-xs sm:text-sm text-green-800 max-w-md mx-auto mb-8">Master 500 learning trials across Science, History, Math, Tech, Geography, and more. Level up from Novice to Grandmaster!</p>
-
-                <div class="space-y-5 text-left max-w-md mx-auto mb-8">
+        <!-- TAB 1: LIVE VOTING AWARDS -->
+        <template x-if="currentTab === 'vote'">
+        <div>
+            <!-- HERO BANNER & RUNNING COUNTDOWN -->
+            <div class="relative bg-gradient-to-r from-[#17060c] via-[#1f0810] to-[#120408] border border-rose-900/50 rounded-3xl p-6 sm:p-8 mb-8 overflow-hidden glow-red">
+                <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-rose-600/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>
-                        <label class="block text-xs font-bold text-green-800 uppercase tracking-wider mb-2">Scholar Name</label>
-                        <input type="text" x-model="playerName" placeholder="Enter your scholar handle..." class="w-full bg-green-50 border border-green-300/60 rounded-xl px-4 py-3 text-sm text-green-950 placeholder-green-500 focus:outline-none focus:border-green-600 transition-all font-semibold">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-green-800 uppercase tracking-wider mb-2">Select Subject Domain</label>
-                        <div class="grid grid-cols-2 gap-2.5">
-                            <button @click="selectedSubject = 'all'" :class="selectedSubject === 'all' ? 'bg-green-600 border-green-500 text-green-950 font-bold' : 'bg-green-50 border-green-200 text-green-800'" class="p-3 rounded-xl border text-xs text-center transition-all">🌟 All 500 Learning Trials</button>
-                            <button @click="selectedSubject = 'Science'" :class="selectedSubject === 'Science' ? 'bg-green-600 border-green-500 text-green-950 font-bold' : 'bg-green-50 border-green-200 text-green-800'" class="p-3 rounded-xl border text-xs text-center transition-all">🔬 Science & Cosmos</button>
-                            <button @click="selectedSubject = 'History'" :class="selectedSubject === 'History' ? 'bg-green-600 border-green-500 text-green-950 font-bold' : 'bg-green-50 border-green-200 text-green-800'" class="p-3 rounded-xl border text-xs text-center transition-all">🏛️ World History</button>
-                            <button @click="selectedSubject = 'Tech'" :class="selectedSubject === 'Tech' ? 'bg-green-600 border-green-500 text-green-950 font-bold' : 'bg-green-50 border-green-200 text-green-800'" class="p-3 rounded-xl border text-xs text-center transition-all">💻 Tech & Logic</button>
-                            <button @click="selectedSubject = 'Math'" :class="selectedSubject === 'Math' ? 'bg-green-600 border-green-500 text-green-950 font-bold' : 'bg-green-50 border-green-200 text-green-800'" class="p-3 rounded-xl border text-xs text-center transition-all">➗ Math & Numbers</button>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-950/80 border border-rose-800/60 text-rose-300 text-[11px] font-bold uppercase tracking-widest mb-3">
+                            <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span> Official Voting Period
+                        </div>
+                        <h1 class="text-3xl sm:text-4xl font-black tracking-tight text-white mb-2" x-text="getCurrentCategoryName()"></h1>
+                        <p class="text-xs sm:text-sm text-slate-400 max-w-xl">Cast your hearts to support a nominee. Vote totals below are a local demo and are not live global results.</p>
+                        <div class="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-rose-300">
+                            <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                            <span x-text="demoSeconds > 0 ? 'Demo votes moving for ' + demoTimer : 'Two-minute demo finished'"></span>
                         </div>
                     </div>
-                </div>
 
-                <button @click="startGame()" class="w-full max-w-md py-4 rounded-2xl bg-gradient-to-r from-green-600 via-green-600 to-green-600 hover:opacity-95 font-black text-sm text-green-950 shadow-xl shadow-green-300/40 transition-all active:scale-95 uppercase tracking-wider">
-                    Begin Trial 🚀
-                </button>
-            </div>
-        </template>
-
-        <!-- SCREEN 2: ACTIVE TRIAL ROUND -->
-        <template x-if="gameState === 'playing'">
-            <div class="bg-white border border-green-200/80 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-                
-                <!-- Status Bar & Progress -->
-                <div class="flex justify-between items-center mb-6">
-                    <span class="text-xs font-bold uppercase tracking-widest text-green-800" x-text="'Trial ' + (currentIndex + 1) + ' of ' + activeQuestions.length"></span>
-                    <div class="flex items-center gap-2">
-                        <span class="px-3 py-1 rounded-lg bg-green-200/60 border border-green-300/60 text-green-800 text-xs font-bold uppercase tracking-wider" x-text="currentQuestion.subject"></span>
-                        <button @click="pauseGame()" class="px-3 py-1 rounded-lg bg-green-200/60 border border-green-300/60 text-green-800 text-xs font-bold hover:bg-green-300/70 transition-all">⏸ Pause</button>
+                    <!-- Running Countdown Box -->
+                    <div class="bg-black/50 border border-rose-900/60 rounded-2xl p-4 text-center min-w-[200px]">
+                        <span class="text-[10px] uppercase font-bold text-rose-400 tracking-widest block mb-1">Round Closes In</span>
+                        <div class="text-xl sm:text-2xl font-black font-mono text-white tracking-wider" x-text="countdownTimer"></div>
+                        <span class="text-[10px] text-slate-500 block mt-1">UTC / Standard Server Time</span>
                     </div>
                 </div>
 
-                <!-- Progress Bar -->
-                <div class="w-full bg-green-200/40 h-2 rounded-full mb-8 overflow-hidden">
-                    <div class="bg-gradient-to-r from-green-500 to-green-600 h-full transition-all duration-500" :style="`width: ${((currentIndex + 1) / activeQuestions.length) * 100}%`"></div>
-                </div>
-
-                <!-- Question / Learning Box -->
-                <div class="bg-green-50 border border-green-300/60 rounded-2xl p-6 sm:p-8 mb-8 shadow-inner">
-                    <span class="text-[10px] uppercase font-extrabold text-green-800 tracking-widest block mb-2">Knowledge Challenge:</span>
-                    <p class="text-lg sm:text-xl font-bold text-green-950 tracking-wide" x-text="currentQuestion.prompt"></p>
-                </div>
-
-                <!-- Options Grid -->
-                <div class="grid grid-cols-1 gap-3.5 mb-6">
-                    <template x-for="(option, index) in currentQuestion.options" :key="index">
-                        <button @click="submitAnswer(option)" 
-                                :disabled="answered"
-                                :class="{
-                                    'bg-green-200/40 border-green-300/70 hover:bg-green-300/50 text-green-800': !answered,
-                                    'bg-emerald-600 border-emerald-500 text-green-950 font-bold answer-feedback answer-correct': answered && option === currentQuestion.answer,
-                                    'bg-rose-600 border-rose-500 text-green-950 font-bold answer-feedback answer-wrong': answered && selectedAnswer === option && option !== currentQuestion.answer,
-                                    'opacity-40': answered && option !== currentQuestion.answer && option !== selectedAnswer
-                                }"
-                                class="p-4 rounded-2xl border text-xs sm:text-sm font-semibold transition-all text-left flex items-center justify-between"
-                        >
-                            <span x-text="option"></span>
-                            <span class="text-xs font-bold px-2.5 py-1 rounded bg-black/40 text-green-800" x-text="['A', 'B', 'C', 'D'][index]"></span>
-                        </button>
+                <!-- Category Selector -->
+                <div class="flex flex-wrap gap-2 mt-8 pt-6 border-t border-rose-950/80">
+                    <template x-for="cat in categories" :key="cat.id">
+                        <button @click="selectedCategory = cat.id" :class="selectedCategory === cat.id ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-900/50 font-black' : 'bg-[#0f0408] text-slate-400 border-rose-950 hover:border-rose-800 font-semibold'" class="px-5 py-2.5 rounded-xl text-xs border transition-all" x-text="cat.name"></button>
                     </template>
                 </div>
+            </div>
 
-                <!-- Educational Explanation Card (Shown after answering) -->
-                <div x-show="answered" x-transition class="answer-feedback rounded-2xl p-4 mb-3 text-sm font-extrabold" :class="selectedAnswer === currentQuestion.answer ? 'bg-emerald-100 border border-emerald-400 text-emerald-900 answer-correct' : 'bg-rose-100 border border-rose-400 text-rose-900 answer-wrong'" role="status" aria-live="polite">
-                    <span x-text="selectedAnswer === currentQuestion.answer ? '✅ Correct! Great job!' : '❌ Not quite—keep learning!' "></span>
-                </div>
-                <div x-show="answered" x-transition class="bg-green-100/40 border border-green-300/60 rounded-2xl p-4 text-xs text-green-800">
-                    <span class="font-bold text-green-700 uppercase tracking-widest block mb-1">💡 Learning Insight:</span>
-                    <span x-text="currentQuestion.explanation"></span>
+            <!-- AVAILABLE HEARTS STATUS BAR FOR VOTING -->
+            <div class="mb-6 flex justify-between items-center bg-[#110509] border border-rose-950/80 px-5 py-3.5 rounded-2xl">
+                <span class="text-xs text-slate-300 font-medium">Your Voting Power Balance:</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-rose-500 text-sm">❤️</span>
+                    <span class="font-black text-rose-400 text-sm" x-text="userHearts + ' Hearts Available'"></span>
                 </div>
             </div>
+
+            <!-- NOMINEES GRID (NO PHOTOS) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="nominee in filteredNominees" :key="nominee.id">
+                    <div class="relative bg-[#110509] border border-rose-950/80 rounded-2xl p-6 hover:border-rose-900/80 transition-all duration-300 flex flex-col justify-between shadow-2xl group" :class="voteEffects.some(effect => effect.nomineeId === nominee.id) ? 'vote-card-pulse border-rose-500' : ''">
+                        <template x-for="effect in voteEffects.filter(effect => effect.nomineeId === nominee.id)" :key="effect.id">
+                            <span class="vote-burst absolute right-6 bottom-20 z-10 rounded-full bg-rose-600 px-3 py-1.5 text-sm font-black text-white shadow-lg shadow-rose-900/50 pointer-events-none" x-text="'+' + effect.amount + ' ❤️'" aria-hidden="true"></span>
+                        </template>
+
+                        <!-- Nominee Header Info -->
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-rose-900 to-red-800 border border-rose-700/40 flex items-center justify-center font-black text-white text-base shadow-inner" x-text="nominee.name.substring(0, 2)"></div>
+                                    <div>
+                                        <h3 class="text-xl font-black text-white tracking-wide" x-text="nominee.name"></h3>
+                                        <span class="text-[11px] px-2 py-0.5 rounded bg-rose-950/60 text-rose-300 font-semibold border border-rose-900/40 inline-block mt-1" x-text="nominee.fandom"></span>
+                                    </div>
+                                </div>
+                                <span class="px-2.5 py-1 rounded-lg bg-rose-600/90 text-white text-xs font-black shadow-lg" x-text="'Rank #' + getNomineeRank(nominee)"></span>
+                            </div>
+
+                            <!-- Votes & Progress Bar -->
+                            <div class="my-6">
+                                <div class="flex justify-between items-baseline mb-2">
+                                    <span class="text-xs text-slate-400">Total Score Share</span>
+                                    <span class="text-xs font-mono text-rose-400 font-bold" x-text="formatVotes(nominee.votes) + ' votes'"></span>
+                                </div>
+                                <div class="w-full bg-rose-950/60 h-2.5 rounded-full overflow-hidden border border-rose-900/40 p-0.5">
+                                    <div class="bg-gradient-to-r from-rose-600 via-red-500 to-rose-400 h-full rounded-full transition-all duration-500" :style="`width: ${getVotePercentage(nominee.votes)}%`"></div>
+                                </div>
+                                <div class="flex justify-between items-center text-[11px] text-slate-400 mt-1.5 font-medium">
+                                    <span>Percentage</span>
+                                    <span class="text-rose-400 font-bold" x-text="getVotePercentage(nominee.votes) + '%'"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Voting Action Buttons -->
+                        <div class="grid grid-cols-2 gap-2.5 pt-4 border-t border-rose-950/60">
+                            <button @click="castVote(nominee, 1)" class="py-3 px-3 rounded-xl bg-rose-950/40 border border-rose-900/70 hover:bg-rose-900/50 font-bold text-xs text-rose-200 transition-all flex items-center justify-center gap-1 active:scale-95">
+                                <span>Vote 1</span> <span class="text-rose-500">❤️</span>
+                            </button>
+                            <button @click="castVote(nominee, 10)" class="py-3 px-3 rounded-xl bg-gradient-to-r from-rose-700 via-red-600 to-rose-600 hover:opacity-95 font-black text-xs text-white shadow-lg shadow-rose-900/40 transition-all flex items-center justify-center gap-1 active:scale-95">
+                                <span>Vote 10</span> <span class="text-amber-300">🔥</span>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
         </template>
 
-        <!-- PAUSED SCREEN -->
-        <template x-if="gameState === 'paused'">
-            <div class="bg-white border border-green-200/80 rounded-3xl p-8 sm:p-10 shadow-2xl glow-blue text-center">
-                <div class="w-16 h-16 rounded-3xl bg-green-200/80 mx-auto flex items-center justify-center text-3xl mb-4">⏸️</div>
-                <h2 class="text-3xl font-black text-green-950 mb-2">Game Paused</h2>
-                <p class="text-sm text-green-800 mb-8">Your progress is saved. Resume when you’re ready, or return to the menu to choose another subject.</p>
-                <div class="flex gap-3 max-w-md mx-auto">
-                    <button @click="resumeGame()" class="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-green-600 to-lime-500 font-black text-xs text-green-950 shadow-lg transition-all uppercase tracking-wider">
-                        Resume ▶
-                    </button>
-                    <button @click="resetGame()" class="flex-1 py-3.5 rounded-xl bg-green-200/80 border border-green-400 hover:bg-green-300/80 font-bold text-xs text-green-800 transition-all uppercase tracking-wider">
-                        Main Menu
-                    </button>
-                </div>
+        <!-- TAB 2: REAL-TIME LEADERBOARD -->
+        <template x-if="currentTab === 'leaderboard'">
+        <div class="max-w-3xl mx-auto">
+            <div class="mb-8 text-center">
+                <h2 class="text-3xl font-black mb-2 text-white">Global Real-Time Rankings</h2>
+                <p class="text-xs text-slate-400">Live aggregate scores across all regional voting servers.</p>
             </div>
+
+            <div class="space-y-3">
+                <template x-for="(nominee, index) in sortedNominees" :key="nominee.id">
+                    <div class="bg-[#110509] border border-rose-950/80 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-xl hover:border-rose-900 transition-all">
+                        <div class="flex items-center gap-4 sm:gap-6">
+                            <span class="w-8 text-center font-black text-lg sm:text-xl font-mono" :class="{
+                                'text-amber-400 drop-shadow': index === 0,
+                                'text-slate-300': index === 1,
+                                'text-amber-700': index === 2,
+                                'text-slate-600': index > 2
+                            }" x-text="'0' + (index + 1)"></span>
+                            <div class="w-12 h-12 rounded-xl bg-rose-950/60 border border-rose-900/50 flex items-center justify-center font-black text-white text-sm" x-text="nominee.name.substring(0, 2)"></div>
+                            <div>
+                                <h4 class="font-black text-white text-base tracking-wide" x-text="nominee.name"></h4>
+                                <span class="text-[11px] px-2 py-0.5 rounded bg-rose-950/60 text-rose-300 font-semibold border border-rose-900/40" x-text="nominee.fandom"></span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-base sm:text-lg font-black text-rose-400 font-mono" x-text="formatVotes(nominee.votes)"></span>
+                            <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Total Votes</span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
         </template>
 
-        <!-- SCREEN 3: GAME OVER / ACADEMIC REPORT -->
-        <template x-if="gameState === 'gameover'">
-            <div class="bg-white border border-green-200/80 rounded-3xl p-8 sm:p-10 shadow-2xl glow-blue text-center">
-                <div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-green-600 to-lime-500 flex items-center justify-center text-3xl shadow-lg mx-auto mb-4">🏆</div>
-                <h2 class="text-3xl font-black text-green-950 mb-1">Trial Complete!</h2>
-                <p class="text-sm font-black mb-2" :class="passed ? 'text-emerald-700' : 'text-amber-700'" x-text="passed ? '🎉 PASS — You did it! Keep shining!' : '🌱 NOT YET — Keep practicing; you can do it!' "></p>
-                <p class="text-xs text-green-800 mb-6" x-text="'Outstanding effort, Scholar ' + playerName + '!'"></p>
+        <!-- TAB 3: VOTE ENERGY QUESTS -->
+        <template x-if="currentTab === 'missions'">
+        <div class="max-w-xl mx-auto">
+            <div class="mb-8 text-center">
+                <h2 class="text-3xl font-black mb-2 text-white">Heart Charging Station</h2>
+                <p class="text-xs text-slate-400">Complete official fandom missions to collect free voting hearts daily.</p>
+            </div>
 
-                <div class="bg-green-50 border border-green-300/60 rounded-2xl p-6 max-w-sm mx-auto mb-8 space-y-3">
-                    <div class="flex justify-between text-xs font-semibold">
-                        <span class="text-green-800">Total XP Earned:</span>
-                        <span class="text-green-950 font-black text-sm" x-text="xp + ' XP'"></span>
+            <div class="space-y-4">
+                <div class="bg-[#110509] border border-rose-950/80 rounded-2xl p-5 flex items-center justify-between shadow-xl">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-rose-950/60 border border-rose-900/60 flex items-center justify-center text-xl">📅</div>
+                        <div>
+                            <h3 class="font-black text-sm text-white">Daily Attendance Check-in</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Verify your daily presence on the global server.</p>
+                        </div>
                     </div>
-                    <div class="flex justify-between text-xs font-semibold">
-                        <span class="text-green-800">Final Rank:</span>
-                        <span class="text-green-700 font-black text-sm" x-text="playerRank"></span>
-                    </div>
-                    <div class="flex justify-between text-xs font-semibold">
-                        <span class="text-green-800">Final Score:</span>
-                        <span class="text-emerald-700 font-black text-sm" x-text="correctCount + ' / ' + activeQuestions.length + ' (' + scorePercentage + '%)'"></span>
-                    </div>
+                    <button @click="claimDailyHearts()" :disabled="claimedToday" :class="claimedToday ? 'opacity-40 cursor-not-allowed bg-slate-900 border-slate-800 text-slate-500' : 'bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-900/40 text-white'" class="px-5 py-2.5 rounded-xl text-xs font-black transition-all border border-rose-500/30 whitespace-nowrap">
+                        <span x-text="claimedToday ? 'Claimed ✅' : '+10 ❤️'"></span>
+                    </button>
                 </div>
 
-                <div class="flex gap-3 max-w-md mx-auto">
-                    <button @click="resetGame()" class="flex-1 py-3.5 rounded-xl bg-green-200/80 border border-green-400 hover:bg-green-300/80 font-bold text-xs text-green-800 transition-all uppercase tracking-wider">
-                        Main Menu
+                <div class="bg-[#110509] border border-rose-950/80 rounded-2xl p-5 flex items-center justify-between shadow-xl">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-rose-950/60 border border-rose-900/60 flex items-center justify-center text-xl">📺</div>
+                        <div>
+                            <h3 class="font-black text-sm text-white">Watch Global Sponsor Ad</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Support partner broadcast to earn bonus votes.</p>
+                        </div>
+                    </div>
+                    <button @click="earnQuestHearts(15)" class="px-5 py-2.5 rounded-xl bg-rose-950/60 border border-rose-900/70 hover:bg-rose-900/60 text-rose-200 text-xs font-black transition-all whitespace-nowrap">
+                        Watch +15 ❤️
                     </button>
-                    <button @click="resetGame()" class="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-green-600 to-lime-500 hover:opacity-90 font-black text-xs text-green-950 shadow-lg shadow-green-300/40 transition-all uppercase tracking-wider">
-                        Choose Subject 🔄
+                </div>
+
+                <div class="bg-[#110509] border border-rose-950/80 rounded-2xl p-5 flex items-center justify-between shadow-xl">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-rose-950/60 border border-rose-900/60 flex items-center justify-center text-xl">🌐</div>
+                        <div>
+                            <h3 class="font-black text-sm text-white">Share Voting Link</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Mobilize global fandom networks on social channels.</p>
+                        </div>
+                    </div>
+                    <button @click="earnQuestHearts(25)" class="px-5 py-2.5 rounded-xl bg-rose-950/60 border border-rose-900/70 hover:bg-rose-900/60 text-rose-200 text-xs font-black transition-all whitespace-nowrap">
+                        Share +25 ❤️
                     </button>
                 </div>
             </div>
+        </div>
         </template>
 
     </main>
 
     <!-- NOTIFICATION TOAST -->
-    <div x-show="toastMessage" x-transition class="fixed bottom-6 right-6 bg-green-50 border border-green-600/80 text-green-950 px-5 py-4 rounded-2xl shadow-2xl text-xs font-bold z-50 flex items-center gap-3">
-        <span class="text-green-800 text-base">✨</span>
+    <div x-show="toastMessage" x-transition class="fixed bottom-6 right-6 bg-[#17050a] border border-rose-700/80 text-white px-5 py-4 rounded-2xl shadow-2xl text-xs font-bold z-50 flex items-center gap-3">
+        <span class="text-rose-400 text-base">✨</span>
         <span x-text="toastMessage"></span>
     </div>
 
-    <!-- JS LEARNING ENGINE & 100 KNOWLEDGE ITEMS -->
+    <!-- JS LOGIC ENGINE -->
     <script>
-        function learningGame() {
+        function votingApp() {
             return {
-                gameState: 'lobby', // lobby, playing, gameover
-                playerName: '',
-                selectedSubject: 'all',
-                runQuestions: [],
-                seenQuestions: {},
-                xp: 0,
-                correctCount: 0,
-                currentIndex: 0,
-                answered: false,
-                selectedAnswer: null,
+                currentTab: 'vote',
+                selectedCategory: 'aoty',
+                userHearts: 60,
+                claimedToday: false,
                 toastMessage: '',
-                pendingTimeout: null,
+                voteEffects: [],
+                nextVoteEffectId: 0,
+                totalSeconds: 318165, // Starting countdown time (~3 days, 14 hours)
+                countdownTimer: '03D : 14H : 22M : 45S',
+                demoSeconds: 120,
+                demoTimer: '02:00',
 
-                init() {
-                    this.masterBank = this.masterBank.concat(this.buildMathQuestions());
-                },
-
-                buildMathQuestions() {
-                    const questions = [];
-                    for (let left = 1; left <= 20; left++) {
-                        for (let right = 1; right <= 20; right++) {
-                            const answer = left * right;
-                            const options = [answer, answer + 1, answer + 2, answer + 3];
-                            for (let i = options.length - 1; i > 0; i--) {
-                                const j = Math.floor(Math.random() * (i + 1));
-                                [options[i], options[j]] = [options[j], options[i]];
-                            }
-                            questions.push({
-                                subject: 'Math',
-                                prompt: `What is ${left} × ${right}?`,
-                                answer,
-                                options,
-                                explanation: `${left} groups of ${right} make ${answer}.`
-                            });
-                        }
-                    }
-                    return questions;
-                },
-
-                get scorePercentage() {
-                    return this.activeQuestions.length
-                        ? Math.round((this.correctCount / this.activeQuestions.length) * 100)
-                        : 0;
-                },
-
-                get passed() {
-                    return this.scorePercentage >= 60;
-                },
-
-                get playerRank() {
-                    if (this.xp >= 1500) return 'Grandmaster Scholar 👑';
-                    if (this.xp >= 800) return 'Expert Researcher 🔬';
-                    if (this.xp >= 300) return 'Advanced Student 📚';
-                    return 'Novice Scholar 🌱';
-                },
-
-                // 100 curated questions plus 400 generated multiplication challenges.
-                masterBank: [
-                    // SCIENCE (1-20)
-                    { subject: 'Science', prompt: 'What is the chemical symbol for Gold?', answer: 'Au', options: ['Ag', 'Au', 'Gd', 'Pb'], explanation: 'Au comes from the Latin word aurum, meaning shining dawn.' },
-                    { subject: 'Science', prompt: 'Which planet is known as the Red Planet?', answer: 'Mars', options: ['Venus', 'Mars', 'Jupiter', 'Saturn'], explanation: 'Mars appears red due to iron oxide (rust) prevalent on its surface.' },
-                    { subject: 'Science', prompt: 'What gas do plants absorb from the atmosphere for photosynthesis?', answer: 'Carbon dioxide', options: ['Oxygen', 'Nitrogen', 'Carbon dioxide', 'Hydrogen'], explanation: 'Plants use sunlight, water, and carbon dioxide to create oxygen and energy.' },
-                    { subject: 'Science', prompt: 'What is the powerhouse of the cell?', answer: 'Mitochondria', options: ['Nucleus', 'Ribosome', 'Mitochondria', 'Chloroplast'], explanation: 'Mitochondria generate most of the chemical energy needed to power cellular biochemical reactions.' },
-                    { subject: 'Science', prompt: 'What is the speed of light in a vacuum (approx.)?', answer: '300,000 km/s', options: ['150,000 km/s', '300,000 km/s', '450,000 km/s', '1,000,000 km/s'], explanation: 'Light travels at approximately 299,792 kilometers per second in a vacuum.' },
-                    { subject: 'Science', prompt: 'What part of the human brain controls balance and coordination?', answer: 'Cerebellum', options: ['Cerebrum', 'Brainstem', 'Cerebellum', 'Thalamus'], explanation: 'The cerebellum is located at the back of the brain and regulates motor movements.' },
-                    { subject: 'Science', prompt: 'What is the hardest natural substance on Earth?', answer: 'Diamond', options: ['Gold', 'Iron', 'Diamond', 'Quartz'], explanation: 'Diamond is an allotrope of carbon arranged in a cubic crystal lattice structure.' },
-                    { subject: 'Science', prompt: 'What is the most abundant gas in Earth’s atmosphere?', answer: 'Nitrogen', options: ['Oxygen', 'Nitrogen', 'Carbon dioxide', 'Argon'], explanation: 'Nitrogen makes up about 78% of Earth’s atmosphere by volume.' },
-                    { subject: 'Science', prompt: 'What is the medical term for high blood pressure?', answer: 'Hypertension', options: ['Hypotension', 'Hypertension', 'Tachycardia', 'Anemia'], explanation: 'Hypertension forces blood against artery walls at dangerously high levels.' },
-                    { subject: 'Science', prompt: 'What force keeps planets in orbit around the Sun?', answer: 'Gravity', options: ['Magnetism', 'Centrifugal force', 'Gravity', 'Friction'], explanation: 'Isaac Newton formulated the universal law of gravitation.' },
-                    { subject: 'Science', prompt: 'How many bones are in the adult human body?', answer: '206', options: ['198', '206', '215', '220'], explanation: 'Babies are born with around 270 bones, which fuse together over time into 206.' },
-                    { subject: 'Science', prompt: 'What is the pH level of pure water?', answer: '7', options: ['5', '7', '9', '14'], explanation: 'A pH of 7 is considered perfectly neutral on the acidity/alkalinity scale.' },
-                    { subject: 'Science', prompt: 'Which blood type is known as the universal donor?', answer: 'O negative', options: ['A positive', 'AB positive', 'O negative', 'B negative'], explanation: 'O negative red blood cells can be given to patients of any blood type.' },
-                    { subject: 'Science', prompt: 'What is the nearest star to Earth after the Sun?', answer: 'Proxima Centauri', options: ['Sirius', 'Alpha Centauri', 'Proxima Centauri', 'Betelgeuse'], explanation: 'Proxima Centauri is approximately 4.24 light-years away from Earth.' },
-                    { subject: 'Science', prompt: 'What subatomic particle carries a negative electrical charge?', answer: 'Electron', options: ['Proton', 'Neutron', 'Electron', 'Positron'], explanation: 'Electrons orbit the nucleus of an atom and possess negative charges.' },
-                    { subject: 'Science', prompt: 'What process do stars use to generate energy in their cores?', answer: 'Nuclear fusion', options: ['Nuclear fission', 'Nuclear fusion', 'Combustion', 'Oxidation'], explanation: 'Nuclear fusion merges hydrogen atoms to form helium under extreme heat and pressure.' },
-                    { subject: 'Science', prompt: 'What is the primary organ of the human integumentary system?', answer: 'Skin', options: ['Liver', 'Skin', 'Heart', 'Kidneys'], explanation: 'The skin protects the body and regulates temperature.' },
-                    { subject: 'Science', prompt: 'What galaxy is Earth located in?', answer: 'Milky Way', options: ['Andromeda', 'Milky Way', 'Sombrero', 'Triangulum'], explanation: 'The Milky Way is a barred spiral galaxy containing hundreds of billions of stars.' },
-                    { subject: 'Science', prompt: 'What is the freezing point of water in Fahrenheit?', answer: '32°F', options: ['0°F', '32°F', '100°F', '212°F'], explanation: 'In Celsius, freezing is 0°C, which translates to 32°F.' },
-                    { subject: 'Science', prompt: 'What vitamin is synthesized in human skin when exposed to sunlight?', answer: 'Vitamin D', options: ['Vitamin A', 'Vitamin C', 'Vitamin D', 'Vitamin K'], explanation: 'Vitamin D helps regulate calcium and phosphorus levels in the body.' },
-
-                    // HISTORY (21-40)
-                    { subject: 'History', prompt: 'In what year did World War II end?', answer: '1945', options: ['1939', '1942', '1945', '1950'], explanation: 'WWII concluded in 1945 following the surrender of Axis powers.' },
-                    { subject: 'History', prompt: 'Who was the first emperor of the Roman Empire?', answer: 'Augustus', options: ['Julius Caesar', 'Augustus', 'Nero', 'Constantine'], explanation: 'Augustus (Octavian) established the Roman Empire in 27 BC.' },
-                    { subject: 'History', prompt: 'The ancient city of Babylon was located in modern-day which country?', answer: 'Iraq', options: ['Egypt', 'Greece', 'Iraq', 'Iran'], explanation: 'Babylon ruins lie in present-day Hillah, Iraq.' },
-                    { subject: 'History', prompt: 'What year did the Berlin Wall fall?', answer: '1989', options: ['1985', '1989', '1991', '1995'], explanation: 'The fall of the Berlin Wall marked a pivotal milestone in German reunification.' },
-                    { subject: 'History', prompt: 'Who painted the ceiling of the Sistine Chapel?', answer: 'Michelangelo', options: ['Leonardo da Vinci', 'Raphael', 'Michelangelo', 'Donatello'], explanation: 'Michelangelo Buonarroti painted the masterpiece between 1508 and 1512.' },
-                    { subject: 'History', prompt: 'Which empire built the monumental ancient road network known as Qhapaq Ñan?', answer: 'Inca Empire', options: ['Roman Empire', 'Inca Empire', 'Ottoman Empire', 'Persian Empire'], explanation: 'The Inca Empire spanned the Andes mountains in South America.' },
-                    { subject: 'History', prompt: 'Who was the first woman to win a Nobel Prize?', answer: 'Marie Curie', options: ['Rosalind Franklin', 'Marie Curie', 'Ada Lovelace', 'Florence Nightingale'], explanation: 'Marie Curie won the 1903 Nobel Prize in Physics.' },
-                    { subject: 'History', prompt: 'In what year did the Titanic sink in the Atlantic Ocean?', answer: '1912', options: ['1905', '1912', '1918', '1923'], explanation: 'RMS Titanic struck an iceberg and sank on her maiden voyage in April 1912.' },
-                    { subject: 'History', prompt: 'Who wrote the political treatise "The Prince"?', answer: 'Niccolò Machiavelli', options: ['Plato', 'Aristotle', 'Niccolò Machiavelli', 'Thomas Hobbes'], explanation: 'Machiavelli penned the classic work on political realism in 1513.' },
-                    { subject: 'History', prompt: 'What ancient civilization built the monumental pyramids of Giza?', answer: 'Ancient Egyptians', options: ['Mayans', 'Ancient Egyptians', 'Mesopotamians', 'Romans'], explanation: 'The pyramids served as majestic tombs for Egyptian pharaohs.' },
-                    { subject: 'History', prompt: 'What treaty officially ended World War I in 1919?', answer: 'Treaty of Versailles', options: ['Treaty of Paris', 'Treaty of Versailles', 'Treaty of Ghent', 'Treaty of Vienna'], explanation: 'The treaty imposed significant reparations and territorial adjustments on Germany.' },
-                    { subject: 'History', prompt: 'Who was the longest-reigning British monarch prior to Queen Elizabeth II?', answer: 'Queen Victoria', options: ['King George III', 'Queen Victoria', 'King Henry VIII', 'Queen Mary I'], explanation: 'Queen Victoria reigned for 63 years and 7 months.' },
-                    { subject: 'History', prompt: 'The Renaissance period originated in which European country?', answer: 'Italy', options: ['France', 'Spain', 'Italy', 'England'], explanation: 'Florence, Italy became the cultural cradle of the Renaissance.' },
-                    { subject: 'History', prompt: 'Who was the leader of the Soviet Union during World War II?', answer: 'Joseph Stalin', options: ['Vladimir Lenin', 'Joseph Stalin', 'Nikita Khrushchev', 'Leon Trotsky'], explanation: 'Stalin led the USSR through the Great Patriotic War.' },
-                    { subject: 'History', prompt: 'What ancient wonder was located in Alexandria, Egypt?', answer: 'The Lighthouse', options: ['The Colossus', 'The Lighthouse', 'The Hanging Gardens', 'The Mausoleum'], explanation: 'The Pharos Lighthouse guided ships safely into Alexandria harbor.' },
-                    { subject: 'History', prompt: 'In what year did the American Declaration of Independence get adopted?', answer: '1776', options: ['1765', '1776', '1789', '1812'], explanation: 'The Continental Congress formally adopted the declaration on July 4, 1776.' },
-                    { subject: 'History', prompt: 'Who circumnavigated the globe first (expedition completion)?', answer: 'Ferdinand Magellan’s crew', options: ['Christopher Columbus', 'Vasco da Gama', 'Ferdinand Magellan’s crew', 'James Cook'], explanation: 'Juan Sebastián Elcano completed the voyage after Magellan died in the Philippines.' },
-                    { subject: 'History', prompt: 'What was the name of the first artificial satellite launched into space?', answer: 'Sputnik 1', options: ['Explorer 1', 'Sputnik 1', 'Vostok 1', 'Hubble'], explanation: 'The Soviet Union launched Sputnik 1 in October 1957.' },
-                    { subject: 'History', prompt: 'Which civilization developed the earliest known writing system, cuneiform?', answer: 'Sumerians', options: ['Egyptians', 'Sumerians', 'Phoenicians', 'Chinese'], explanation: 'Sumerians etched cuneiform symbols onto wet clay tablets.' },
-                    { subject: 'History', prompt: 'Who was the famous Carthaginian general who crossed the Alps with war elephants?', answer: 'Hannibal', options: ['Scipio Africanus', 'Spartacus', 'Hannibal', 'Alexander the Great'], explanation: 'Hannibal famously attacked the Roman Republic from the north.' },
-
-                    // TECH & LOGIC (41-60)
-                    { subject: 'Tech', prompt: 'What does CPU stand for in computer science?', answer: 'Central Processing Unit', options: ['Computer Personal Unit', 'Central Processing Unit', 'Core Processor Utility', 'Central Program Utility'], explanation: 'The CPU acts as the primary brain of computer execution.' },
-                    { subject: 'Tech', prompt: 'Who is widely considered the first computer programmer?', answer: 'Ada Lovelace', options: ['Alan Turing', 'Charles Babbage', 'Ada Lovelace', 'Bill Gates'], explanation: 'Ada Lovelace wrote the first algorithm intended for Babbage’s mechanical computer.' },
-                    { subject: 'Tech', prompt: 'What programming language is primarily used for structuring web pages?', answer: 'HTML', options: ['Python', 'HTML', 'SQL', 'C++'], explanation: 'HyperText Markup Language provides the foundation and layout for web pages.' },
-                    { subject: 'Tech', prompt: 'What does HTTP stand for in web addresses?', answer: 'HyperText Transfer Protocol', options: ['HyperText Transfer Protocol', 'High Transfer Text Program', 'Hyperlink Transmission Text Protocol', 'Hyper Transfer Terminal Protocol'], explanation: 'HTTP governs how data is transmitted across the World Wide Web.' },
-                    { subject: 'Tech', prompt: 'What year was the World Wide Web invented by Tim Berners-Lee?', answer: '1989', options: ['1975', '1981', '1989', '1995'], explanation: 'Tim Berners-Lee invented the WWW while working at CERN.' },
-                    { subject: 'Tech', prompt: 'What is volatile computer memory that clears when power is turned off?', answer: 'RAM', options: ['ROM', 'RAM', 'SSD', 'HDD'], explanation: 'Random Access Memory temporarily stores active application data.' },
-                    { subject: 'Tech', prompt: 'What does AI stand for in computer science?', answer: 'Artificial Intelligence', options: ['Automated Interface', 'Artificial Intelligence', 'Advanced Integration', 'Algorithmic Indexing'], explanation: 'AI simulates human intelligence processes by machine learning models.' },
-                    { subject: 'Tech', prompt: 'Which company created the popular JavaScript runtime environment Node.js?', answer: 'Ryan Dahl', options: ['Google', 'Microsoft', 'Ryan Dahl', 'Meta'], explanation: 'Ryan Dahl created Node.js in 2009 using Google’s V8 engine.' },
-                    { subject: 'Tech', prompt: 'What is the base-2 numerical system consisting of 0s and 1s called?', answer: 'Binary', options: ['Decimal', 'Hexadecimal', 'Binary', 'Octal'], explanation: 'All digital data is ultimately processed by computers using binary code.' },
-                    { subject: 'Tech', prompt: 'What does SQL stand for?', answer: 'Structured Query Language', options: ['Simple Query Logic', 'Structured Query Language', 'Standard Question Layer', 'System Quality Language'], explanation: 'SQL manages and queries relational databases.' },
-                    { subject: 'Tech', prompt: 'What company developed the Linux kernel operating system foundation?', answer: 'Linus Torvalds', options: ['Microsoft', 'Apple', 'Linus Torvalds', 'IBM'], explanation: 'Linus Torvalds released the initial Linux kernel in 1991.' },
-                    { subject: 'Tech', prompt: 'What protocol is used to send and deliver emails securely?', answer: 'SMTP', options: ['FTP', 'SMTP', 'SSH', 'TCP'], explanation: 'Simple Mail Transfer Protocol handles email transmission across servers.' },
-                    { subject: 'Tech', prompt: 'What is a cybersecurity attack that tricks users into revealing sensitive data called?', answer: 'Phishing', options: ['Spoofing', 'Phishing', 'DDoS', 'Malware'], explanation: 'Phishing mimics trusted entities to steal passwords or credit cards.' },
-                    { subject: 'Tech', prompt: 'What unit of measurement represents one billion bytes?', answer: 'Gigabyte', options: ['Megabyte', 'Gigabyte', 'Terabyte', 'Kilobyte'], explanation: 'One gigabyte equals 1,024 megabytes.' },
-                    { subject: 'Tech', prompt: 'What does GPU stand for in high-performance computing?', answer: 'Graphics Processing Unit', options: ['General Processing Utility', 'Graphics Processing Unit', 'Graphical Pixel Unit', 'Global Program Utility'], explanation: 'GPUs accelerate rendering for graphics and AI neural network training.' },
-                    { subject: 'Tech', prompt: 'What is the name of the first widely used graphical web browser?', answer: 'Mosaic', options: ['Netscape Navigator', 'Mosaic', 'Internet Explorer', 'Safari'], explanation: 'NCSA Mosaic popularized the web in 1993 with inline images.' },
-                    { subject: 'Tech', prompt: 'What does API stand for in software integration?', answer: 'Application Programming Interface', options: ['Advanced Protocol Integration', 'Application Programming Interface', 'Automated Process Index', 'App Program Interaction'], explanation: 'APIs allow different software programs to communicate smoothly.' },
-                    { subject: 'Tech', prompt: 'Which sorting algorithm repeatedly swaps adjacent elements if they are in the wrong order?', answer: 'Bubble Sort', options: ['Merge Sort', 'Quick Sort', 'Bubble Sort', 'Binary Search'], explanation: 'Bubble Sort has a time complexity of O(n^2).' },
-                    { subject: 'Tech', prompt: 'What is a decentralized digital ledger technology powering cryptocurrencies?', answer: 'Blockchain', options: ['Cloud database', 'Blockchain', 'Relational server', 'Mainframe'], explanation: 'Blockchain secures transaction records across distributed computer nodes.' },
-                    { subject: 'Tech', prompt: 'What is the name of Apple’s proprietary integrated development environment for iOS apps?', answer: 'Xcode', options: ['Visual Studio', 'Xcode', 'Android Studio', 'Eclipse'], explanation: 'Xcode provides developer tools for building apps across Apple platforms.' },
-
-                    // GEOGRAPHY & EARTH (61-80)
-                    { subject: 'Geography', prompt: 'What is the longest river in the world?', answer: 'Nile River', options: ['Amazon River', 'Nile River', 'Yangtze River', 'Mississippi River'], explanation: 'The Nile River spans approximately 6,650 kilometers through Africa.' },
-                    { subject: 'Geography', prompt: 'Which desert is the largest hot desert in the world?', answer: 'Sahara Desert', options: ['Gobi Desert', 'Kalahari Desert', 'Sahara Desert', 'Mojave Desert'], explanation: 'The Sahara covers large parts of North Africa.' },
-                    { subject: 'Geography', prompt: 'What is the capital city of Australia?', answer: 'Canberra', options: ['Sydney', 'Melbourne', 'Canberra', 'Brisbane'], explanation: 'Canberra was selected as the capital city as a compromise between Sydney and Melbourne.' },
-                    { subject: 'Geography', prompt: 'Which mountain range separates Europe from Asia?', answer: 'Ural Mountains', options: ['Alps', 'Himalayas', 'Ural Mountains', 'Andes'], explanation: 'The Ural Mountains run north-south through western Russia.' },
-                    { subject: 'Geography', prompt: 'What is the smallest independent country in the world by land area?', answer: 'Vatican City', options: ['Monaco', 'San Marino', 'Vatican City', 'Liechtenstein'], explanation: 'Vatican City covers an area of roughly 0.49 square kilometers.' },
-                    { subject: 'Geography', prompt: 'Which African nation has the largest population?', answer: 'Nigeria', options: ['Egypt', 'Ethiopia', 'Nigeria', 'South Africa'], explanation: 'Nigeria is the most populous country in Africa.' },
-                    { subject: 'Geography', prompt: 'What ocean is the largest by surface area and depth?', answer: 'Pacific Ocean', options: ['Atlantic Ocean', 'Indian Ocean', 'Pacific Ocean', 'Arctic Ocean'], explanation: 'The Pacific Ocean covers more than 30% of Earth’s surface.' },
-                    { subject: 'Geography', prompt: 'Which country features the most natural lakes in the world?', answer: 'Canada', options: ['Russia', 'USA', 'Canada', 'Finland'], explanation: 'Canada contains over 60% of all natural lakes on Earth.' },
-                    { subject: 'Geography', prompt: 'What is the capital city of Japan?', answer: 'Tokyo', options: ['Kyoto', 'Osaka', 'Tokyo', 'Hiroshima'], explanation: 'Tokyo is one of the most populous metropolitan areas in the world.' },
-                    { subject: 'Geography', prompt: 'Through how many countries does the Amazon River flow?', answer: '3', options: ['2', '3', '5', '7'], explanation: 'The Amazon primarily flows through Brazil, Peru, and Colombia.' },
-                    { subject: 'Geography', prompt: 'What is the highest mountain peak in the world above sea level?', answer: 'Mount Everest', options: ['K2', 'Kangchenjunga', 'Mount Everest', 'Makalu'], explanation: 'Mount Everest stands at 8,848.86 meters in the Himalayas.' },
-                    { subject: 'Geography', prompt: 'Which US state has the longest coastline?', answer: 'Alaska', options: ['California', 'Florida', 'Texas', 'Alaska'], explanation: 'Alaska features more tidal coastline than all other US states combined.' },
-                    { subject: 'Geography', prompt: 'What strait separates Europe from Africa at the mouth of the Mediterranean?', answer: 'Strait of Gibraltar', options: ['Strait of Malacca', 'Strait of Gibraltar', 'Bering Strait', 'English Channel'], explanation: 'The Strait of Gibraltar connects the Atlantic Ocean to the Mediterranean Sea.' },
-                    { subject: 'Geography', prompt: 'Which country is known as the Land of the Thousand Lakes?', answer: 'Finland', options: ['Sweden', 'Norway', 'Finland', 'Switzerland'], explanation: 'Finland features over 180,000 crystal-clear lakes.' },
-                    { subject: 'Geography', prompt: 'What is the capital of Argentina?', answer: 'Buenos Aires', options: ['Santiago', 'Lima', 'Buenos Aires', 'Bogota'], explanation: 'Buenos Aires is a major cultural hub situated on the Río de la Plata.' },
-                    { subject: 'Geography', prompt: 'Which tectonic plate boundary results in the formation of deep ocean trenches?', answer: 'Subduction zone', options: ['Divergent boundary', 'Transform fault', 'Subduction zone', 'Continental rift'], explanation: 'Subduction occurs when one tectonic plate moves under another.' },
-                    { subject: 'Geography', prompt: 'What is the driest non-polar desert on Earth?', answer: 'Atacama Desert', options: ['Sahara', 'Atacama Desert', 'Sonoran', 'Taklamakan'], explanation: 'Parts of the Atacama Desert in Chile have recorded zero measurable rainfall for centuries.' },
-                    { subject: 'Geography', prompt: 'Which European capital is built across 14 islands on Lake Mälaren?', answer: 'Stockholm', options: ['Copenhagen', 'Oslo', 'Stockholm', 'Helsinki'], explanation: 'Stockholm is renowned for its picturesque waterways and bridges.' },
-                    { subject: 'Geography', prompt: 'What is the southernmost continent on Earth?', answer: 'Antarctica', options: ['Australia', 'South America', 'Antarctica', 'Zealandia'], explanation: 'Antarctica is an icy, barren landmass surrounding the South Pole.' },
-                    { subject: 'Geography', prompt: 'Which canal connects the Atlantic Ocean to the Pacific Ocean?', answer: 'Panama Canal', options: ['Suez Canal', 'Kiel Canal', 'Panama Canal', 'Corinth Canal'], explanation: 'The Panama Canal cuts across the Isthmus of Panama for maritime trade.' },
-
-                    // LITERATURE & ARTS (81-100)
-                    { subject: 'Literature', prompt: 'Who wrote the epic play "Romeo and Juliet"?', answer: 'William Shakespeare', options: ['Charles Dickens', 'William Shakespeare', 'Jane Austen', 'Mark Twain'], explanation: 'Shakespeare penned the timeless tragedy of star-crossed lovers.' },
-                    { subject: 'Literature', prompt: 'What novel begins with the famous line: "Call me Ishmael"?', answer: 'Moby-Dick', options: ['Treasure Island', 'Moby-Dick', 'The Odyssey', 'Robinson Crusoe'], explanation: 'Herman Melville published Moby-Dick in 1851.' },
-                    { subject: 'Literature', prompt: 'Who wrote the dystopian masterpiece "1984"?', answer: 'George Orwell', options: ['Aldous Huxley', 'Ray Bradbury', 'George Orwell', 'H.G. Wells'], explanation: 'George Orwell introduced concepts like Big Brother and Thought Police.' },
-                    { subject: 'Arts', prompt: 'Who painted the famous artwork "The Starry Night"?', answer: 'Vincent van Gogh', options: ['Claude Monet', 'Pablo Picasso', 'Vincent van Gogh', 'Salvador Dalí'], explanation: 'Van Gogh painted the swirling night sky while staying at an asylum in Saint-Rémy.' },
-                    { subject: 'Literature', prompt: 'Which Greek poet is credited with authoring "The Iliad" and "The Odyssey"?', answer: 'Homer', options: ['Virgil', 'Sophocles', 'Homer', 'Euripides'], explanation: 'Homer’s epic poems are foundational pillars of Western literature.' },
-                    { subject: 'Arts', prompt: 'Who sculpted the famous marble statue of David?', answer: 'Michelangelo', options: ['Donatello', 'Bernini', 'Michelangelo', 'Leonardo da Vinci'], explanation: 'Michelangelo sculpted David between 1501 and 1504 in Florence.' },
-                    { subject: 'Literature', prompt: 'What is the name of the wizard school in J.K. Rowling’s Harry Potter series?', answer: 'Hogwarts', options: ['Beauxbatons', 'Durmstrang', 'Hogwarts', 'Ilvermorny'], explanation: 'Hogwarts School of Witchcraft and Wizardry is the primary setting for the series.' },
-                    { subject: 'Arts', prompt: 'What artistic movement was pioneered by Pablo Picasso and Georges Braque?', answer: 'Cubism', options: ['Impressionism', 'Surrealism', 'Cubism', 'Baroque'], explanation: 'Cubism broke down subjects into geometric multi-perspective shapes.' },
-                    { subject: 'Literature', prompt: 'Who wrote the classic novel "Pride and Prejudice"?', answer: 'Jane Austen', options: ['Charlotte Brontë', 'Jane Austen', 'Virginia Woolf', 'Emily Brontë'], explanation: 'Jane Austen published the novel of manners in 1813.' },
-                    { subject: 'Arts', prompt: 'Who composed the famous 5th Symphony featuring the iconic "short-short-short-long" motif?', answer: 'Ludwig van Beethoven', options: ['Wolfgang Amadeus Mozart', 'Johann Sebastian Bach', 'Ludwig van Beethoven', 'Frédéric Chopin'], explanation: 'Beethoven’s Fifth Symphony is one of the most famous compositions in classical music.' },
-                    { subject: 'Literature', prompt: 'In what fictional country does J.R.R. Tolkien’s "The Lord of the Rings" take place?', answer: 'Middle-earth', options: ['Narnia', 'Westeros', 'Middle-earth', 'Eldoria'], explanation: 'Middle-earth serves as the setting for Tolkien’s legendary fantasy universe.' },
-                    { subject: 'Arts', prompt: 'Which surrealist artist painted melting clocks in "The Persistence of Memory"?', answer: 'Salvador Dalí', options: ['René Magritte', 'Salvador Dalí', 'Joan Miró', 'Max Ernst'], explanation: 'Dalí captured dreamscapes and distorted time in this 1931 masterpiece.' },
-                    { subject: 'Literature', prompt: 'Who wrote the American classic "The Great Gatsby"?', answer: 'F. Scott Fitzgerald', options: ['Ernest Hemingway', 'F. Scott Fitzgerald', 'John Steinbeck', 'William Faulkner'], explanation: 'Fitzgerald chronicled the Jazz Age and the American Dream.' },
-                    { subject: 'Literature', prompt: 'What is the title of Mary Shelley’s groundbreaking 1818 science fiction novel?', answer: 'Frankenstein', options: ['Dracula', 'Frankenstein', 'The Time Machine', 'Dr. Jekyll and Mr. Hyde'], explanation: 'Mary Shelley is often credited with inventing the science fiction genre.' },
-                    { subject: 'Arts', prompt: 'What architectural style features soaring pointed arches, ribbed vaults, and flying buttresses?', answer: 'Gothic', options: ['Romanesque', 'Gothic', 'Neoclassical', 'Renaissance'], explanation: 'Gothic architecture defined magnificent medieval European cathedrals.' },
-                    { subject: 'Literature', prompt: 'Who wrote the adventure novel "The Adventures of Tom Sawyer"?', answer: 'Mark Twain', options: ['Jack London', 'Mark Twain', 'Robert Louis Stevenson', 'Herman Melville'], explanation: 'Mark Twain (Samuel Clemens) captured childhood along the Mississippi River.' },
-                    { subject: 'Arts', prompt: 'Who painted the ceiling mural "The Creation of Adam"?', answer: 'Michelangelo', options: ['Raphael', 'Botticelli', 'Michelangelo', 'Titian'], explanation: 'The fresco is part of the Sistine Chapel ceiling.' },
-                    { subject: 'Literature', prompt: 'What tragic play features the famous soliloquy "To be, or not to be"?', answer: 'Hamlet', options: ['Macbeth', 'King Lear', 'Hamlet', 'Othello'], explanation: 'Hamlet contemplates mortality and existence in Shakespeare’s masterpiece.' },
-                    { subject: 'Arts', prompt: 'Which musical era followed the Baroque period and preceded the Romantic era?', answer: 'Classical era', options: ['Renaissance', 'Classical era', 'Modern era', 'Impressionist era'], explanation: 'Composers like Mozart and Haydn dominated the Classical era.' },
-                    { subject: 'Literature', prompt: 'Who wrote the dystopian novel "Brave New World"?', answer: 'Aldous Huxley', options: ['George Orwell', 'Aldous Huxley', 'Ray Bradbury', 'Kurt Vonnegut'], explanation: 'Huxley explored a futuristic society engineered by controlled biotechnology.' }
+                categories: [
+                    { id: 'aoty', name: 'Artist of the Year' },
+                    { id: 'global', name: 'Global Powerhouse' },
+                    { id: 'fanchoice', name: 'Fan Choice Award' }
                 ],
 
-                get activeQuestions() {
-                    return this.runQuestions;
-                },
+                nominees: [
+                    { id: 1, category: 'aoty', name: 'LNGSHOT', fandom: 'ShotCallers', votes: 142000 },
+                    { id: 2, category: 'aoty', name: 'aespa', fandom: 'MY', votes: 215300 },
+                    { id: 3, category: 'aoty', name: 'SB19', fandom: 'A’TIN', votes: 245000 },
+                    { id: 4, category: 'global', name: 'BINI', fandom: 'Blooms', votes: 198000 },
+                    { id: 5, category: 'global', name: 'Stray Kids', fandom: 'STAY', votes: 230400 },
+                    { id: 6, category: 'global', name: 'XONARA', fandom: 'Xona', votes: 112000 },
+                    { id: 7, category: 'fanchoice', name: 'BOYNEXTDOOR', fandom: 'ONEDOOR', votes: 135000 },
+                    { id: 8, category: 'fanchoice', name: 'ALPHADRIVE1', fandom: 'AlphaV', votes: 98000 },
+                    { id: 9, category: 'fanchoice', name: 'TWS', fandom: '42', votes: 124000 },
+                    { id: 10, category: 'fanchoice', name: 'ATEEZ', fandom: 'ATINY', votes: 187000 }
+                ],
 
-                get currentQuestion() {
-                    return this.activeQuestions[this.currentIndex] || this.activeQuestions[0];
-                },
-
-                pauseGame() {
-                    if (this.gameState !== 'playing') return;
-                    if (this.pendingTimeout) {
-                        clearTimeout(this.pendingTimeout);
-                        this.pendingTimeout = null;
-                    }
-                    this.gameState = 'paused';
-                },
-
-                resumeGame() {
-                    if (this.gameState !== 'paused') return;
-                    this.gameState = 'playing';
-                    if (this.answered) this.scheduleNextQuestion();
-                },
-
-                scheduleNextQuestion() {
-                    this.pendingTimeout = setTimeout(() => {
-                        this.pendingTimeout = null;
-                        if (this.currentIndex < this.activeQuestions.length - 1) {
-                            this.currentIndex++;
-                            const questionIndex = this.masterBank.indexOf(this.currentQuestion);
-                            this.seenQuestions[questionIndex] = true;
-                            this.answered = false;
-                            this.selectedAnswer = null;
-                        } else {
-                            this.gameState = 'gameover';
+                initTimer() {
+                    setInterval(() => {
+                        if (this.totalSeconds > 0) {
+                            this.totalSeconds--;
+                            let d = Math.floor(this.totalSeconds / (3600 * 24));
+                            let h = Math.floor((this.totalSeconds % (3600 * 24)) / 3600);
+                            let m = Math.floor((this.totalSeconds % 3600) / 60);
+                            let s = this.totalSeconds % 60;
+                            
+                            this.countdownTimer = 
+                                String(d).padStart(2, '0') + 'D : ' + 
+                                String(h).padStart(2, '0') + 'H : ' + 
+                                String(m).padStart(2, '0') + 'M : ' + 
+                                String(s).padStart(2, '0') + 'S';
                         }
-                    }, 3500);
+
+                        if (this.demoSeconds > 0) {
+                            this.demoSeconds--;
+                            this.nominees.forEach(nominee => {
+                                nominee.votes += 1 + Math.floor(Math.random() * 8);
+                            });
+                            const minutes = Math.floor(this.demoSeconds / 60);
+                            const seconds = this.demoSeconds % 60;
+                            this.demoTimer = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                        }
+                    }, 1000);
                 },
 
-                startGame() {
-                    if (!this.playerName.trim()) {
-                        this.showToast('⚠️ Please enter your scholar name first!');
+                get filteredNominees() {
+                    return this.nominees.filter(n => n.category === this.selectedCategory);
+                },
+
+                get sortedNominees() {
+                    return [...this.nominees].sort((a, b) => b.votes - a.votes);
+                },
+
+                getCurrentCategoryName() {
+                    let cat = this.categories.find(c => c.id === this.selectedCategory);
+                    return cat ? cat.name : '';
+                },
+
+                formatVotes(num) {
+                    return num.toLocaleString();
+                },
+
+                getVotePercentage(nomineeVotes) {
+                    let categoryTotal = this.filteredNominees.reduce((sum, n) => sum + n.votes, 0);
+                    if (categoryTotal === 0) return 0;
+                    return ((nomineeVotes / categoryTotal) * 100).toFixed(1);
+                },
+
+                getNomineeRank(nominee) {
+                    let sorted = [...this.filteredNominees].sort((a, b) => b.votes - a.votes);
+                    let index = sorted.findIndex(n => n.id === nominee.id);
+                    return index !== -1 ? index + 1 : '-';
+                },
+
+                castVote(nominee, amount) {
+                    if (this.userHearts < amount) {
+                        this.showToast('⚠️ Insufficient voting hearts! Visit Heart Station to charge.');
                         return;
                     }
-
-                    const questionIndices = this.masterBank
-                        .map((question, index) => index)
-                        .filter(index => this.selectedSubject === 'all' || this.masterBank[index].subject === this.selectedSubject);
-                    let unseenIndices = questionIndices.filter(index => !this.seenQuestions[index]);
-
-                    if (unseenIndices.length === 0) {
-                        questionIndices.forEach(index => delete this.seenQuestions[index]);
-                        unseenIndices = questionIndices;
-                    }
-
-                    for (let i = unseenIndices.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [unseenIndices[i], unseenIndices[j]] = [unseenIndices[j], unseenIndices[i]];
-                    }
-
-                    this.runQuestions = unseenIndices.map(index => {
-                        const question = this.masterBank[index];
-                        const options = [...question.options];
-                        for (let i = options.length - 1; i > 0; i--) {
-                            const j = Math.floor(Math.random() * (i + 1));
-                            [options[i], options[j]] = [options[j], options[i]];
-                        }
-                        return { ...question, options };
-                    });
-                    this.seenQuestions[unseenIndices[0]] = true;
-                    this.xp = 0;
-                    this.correctCount = 0;
-                    this.currentIndex = 0;
-                    this.gameState = 'playing';
-                    this.answered = false;
-                    this.selectedAnswer = null;
+                    this.userHearts -= amount;
+                    nominee.votes += amount;
+                    const effect = { id: ++this.nextVoteEffectId, nomineeId: nominee.id, amount };
+                    this.voteEffects.push(effect);
+                    setTimeout(() => {
+                        this.voteEffects = this.voteEffects.filter(item => item.id !== effect.id);
+                    }, 950);
+                    this.showToast(`Successfully cast ${amount} ❤️ vote(s) for ${nominee.name}!`);
                 },
 
-                submitAnswer(option) {
-                    if (this.answered) return;
-                    this.answered = true;
-                    this.selectedAnswer = option;
-
-                    if (option === this.currentQuestion.answer) {
-                        this.xp += 50;
-                        this.correctCount++;
-                        this.showToast('🎉 Correct! +50 XP Learned');
-                    } else {
-                        this.showToast('❌ Incorrect! Review the insight below.');
+                claimDailyHearts() {
+                    if (this.claimedToday) {
+                        this.showToast('⚠️ Daily attendance bonus already claimed today.');
+                        return;
                     }
-
-                    this.scheduleNextQuestion(); // Gives time to read explanation
+                    this.userHearts += 10;
+                    this.claimedToday = true;
+                    this.showToast('🎁 Successfully claimed +10 daily check-in hearts!');
                 },
 
-                resetGame() {
-                    if (this.pendingTimeout) {
-                        clearTimeout(this.pendingTimeout);
-                        this.pendingTimeout = null;
-                    }
-                    this.gameState = 'lobby';
-                    this.answered = false;
-                    this.selectedAnswer = null;
+                earnQuestHearts(amount) {
+                    this.userHearts += amount;
+                    this.showToast(`⭐ Quest completed! Added +${amount} ❤️ hearts to your account.`);
                 },
 
                 showToast(msg) {
                     this.toastMessage = msg;
                     setTimeout(() => {
                         this.toastMessage = '';
-                    }, 3000);
+                    }, 3500);
                 }
             }
         }
